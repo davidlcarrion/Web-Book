@@ -5,914 +5,647 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>By The Hearth — The Tome</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --deep-blue: #0a1628;
-    --deep-blue-mid: #0d2040;
-    --deep-green: #0a2318;
-    --deep-green-mid: #0f3024;
-    --cyan: #00f5ff;
-    --cyan-dim: #00c8d4;
-    --cyan-ghost: rgba(0,245,255,0.08);
-    --ui-green: #007f66;
-    --ui-red: #7f1900;
-    --ui-red-light: #c42a00;
-    --leather-dark: #1a0a00;
-    --leather-mid: #2d1200;
-    --leather-accent: #4a1f00;
-    --leather-highlight: #6b3010;
-    --gold: #c9a96e;
-    --gold-dim: #8a6b3a;
-    --page-bg: rgba(8, 20, 35, 0.85);
-    --page-border: rgba(0, 245, 255, 0.15);
-  }
+:root {
+  --deep-blue: #050d18;
+  --cyan: #00f5ff;
+  --cyan-dim: #00c8d4;
+  --ui-green: #007f66;
+  --ui-red: #7f1900;
+  --ui-red-light: #c42a00;
+  --leather-dark: #1a0800;
+  --leather-mid: #2d1200;
+  --leather-accent: #4a1f00;
+  --leather-hi: #6b3010;
+  --gold: #c9a96e;
+  --gold-dim: #8a6b3a;
+  --page-dark: #060f1e;
+  --page-mid: #08172e;
+}
 
-  html, body {
-    width: 100%; height: 100%;
-    background: #050d18;
-    overflow: hidden;
-    font-family: 'Cormorant Garamond', serif;
-    color: #e8e0d0;
-    cursor: default;
-  }
+html, body {
+  width: 100%; height: 100%;
+  background: var(--deep-blue);
+  overflow: hidden;
+  font-family: 'Cormorant Garamond', serif;
+  color: #e8e0d0;
+  user-select: none;
+}
 
-  #bg-canvas {
-    position: fixed; inset: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
+#bg-canvas {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
 
-  #scene {
-    position: fixed; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1;
-    perspective: 1800px;
-  }
+/* ── COVER SCREEN ── */
+#cover-screen {
+  position: fixed; inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 1.2s ease;
+}
 
-  /* ── COVER ── */
-  #cover-wrap {
-    position: relative;
-    width: 420px; height: 580px;
-    transform-style: preserve-3d;
-    transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
-    cursor: pointer;
-  }
+#cover-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
 
-  #cover-wrap:hover { transform: rotateY(-4deg) rotateX(2deg) scale(1.01); }
+#cover-book {
+  width: 380px; height: 540px;
+  position: relative;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+  filter: drop-shadow(0 40px 80px rgba(0,0,0,0.95)) drop-shadow(0 0 40px rgba(0,245,255,0.04));
+}
 
-  #cover {
-    width: 100%; height: 100%;
-    position: relative;
-    border-radius: 4px 16px 16px 4px;
-    overflow: hidden;
-    box-shadow:
-      -8px 0 0 var(--leather-dark),
-      -16px 0 0 var(--leather-mid),
-      -20px 0 0 var(--leather-dark),
-      0 30px 80px rgba(0,0,0,0.9),
-      0 0 60px rgba(0,245,255,0.05),
-      inset 0 0 80px rgba(0,0,0,0.6);
-    background:
-      radial-gradient(ellipse at 30% 20%, var(--leather-highlight) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 80%, var(--leather-accent) 0%, transparent 50%),
-      linear-gradient(135deg, var(--leather-mid) 0%, var(--leather-dark) 40%, var(--leather-mid) 70%, var(--leather-dark) 100%);
-  }
+#cover-book:hover {
+  transform: rotateY(-6deg) rotateX(3deg) scale(1.02);
+}
 
-  #cover::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(0,0,0,0.08) 3px,
-      rgba(0,0,0,0.08) 4px
-    );
-    pointer-events: none;
-  }
+#cover-face {
+  width: 100%; height: 100%;
+  border-radius: 3px 14px 14px 3px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 25% 15%, var(--leather-hi) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 85%, var(--leather-accent) 0%, transparent 45%),
+    linear-gradient(150deg, var(--leather-mid) 0%, var(--leather-dark) 35%, var(--leather-mid) 65%, var(--leather-dark) 100%);
+}
 
-  #cover::after {
-    content: '';
-    position: absolute; inset: 12px;
-    border: 1px solid var(--gold-dim);
-    border-radius: 2px 12px 12px 2px;
-    pointer-events: none;
-    box-shadow: inset 0 0 20px rgba(201,169,110,0.1);
-  }
+/* leather grain */
+#cover-face::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 3px),
+    repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.01) 8px, rgba(255,255,255,0.01) 9px);
+  pointer-events: none;
+}
 
-  #cover-inner {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 16px; padding: 40px;
-  }
+/* inner border */
+#cover-face::after {
+  content: '';
+  position: absolute; inset: 14px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 1px 10px 10px 1px;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,169,110,0.05);
+  pointer-events: none;
+}
 
-  #cover-symbol {
-    width: 80px; height: 80px;
-    border: 1px solid var(--gold-dim);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    position: relative;
-    box-shadow: 0 0 20px rgba(201,169,110,0.15), inset 0 0 20px rgba(0,0,0,0.5);
-  }
+/* spine shadow on left */
+#cover-spine {
+  position: absolute;
+  left: -18px; top: 0;
+  width: 18px; height: 100%;
+  background: linear-gradient(90deg, #0a0400, #1a0800, #0f0500);
+  border-radius: 2px 0 0 2px;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.8);
+}
 
-  #cover-symbol::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border: 1px solid rgba(201,169,110,0.3);
-    border-radius: 50%;
-  }
+#cover-spine::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 8%; transform: translateX(-50%);
+  width: 1px; height: 84%;
+  background: linear-gradient(180deg, transparent, rgba(201,169,110,0.3), transparent);
+}
 
-  #cover-eye {
-    width: 32px; height: 32px;
-    position: relative;
-  }
+/* page stack illusion */
+#cover-pages {
+  position: absolute;
+  right: -6px; top: 3px; bottom: 3px;
+  width: 8px;
+  background: repeating-linear-gradient(
+    180deg,
+    #e8e0d0 0px, #e8e0d0 1px,
+    #c8bfa8 1px, #c8bfa8 2px
+  );
+  border-radius: 0 2px 2px 0;
+  opacity: 0.6;
+}
 
-  #cover-title {
-    font-family: 'Cinzel', serif;
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: 0.2em;
-    color: var(--gold);
-    text-align: center;
-    text-shadow: 0 0 30px rgba(201,169,110,0.4);
-    line-height: 1.2;
-  }
+#cover-content {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 18px; padding: 48px 40px;
+}
 
-  #cover-subtitle {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 13px;
-    font-weight: 300;
-    font-style: italic;
-    letter-spacing: 0.35em;
-    color: rgba(201,169,110,0.6);
-    text-align: center;
-    text-transform: uppercase;
-  }
+.cover-ornament {
+  width: 72px; height: 72px;
+  border: 1px solid rgba(201,169,110,0.5);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  box-shadow: 0 0 24px rgba(201,169,110,0.12), inset 0 0 24px rgba(0,0,0,0.6);
+}
 
-  #cover-divider {
-    width: 60%; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
-    margin: 4px 0;
-  }
+.cover-ornament::before {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 50%;
+}
 
-  #cover-open-hint {
-    position: absolute;
-    bottom: 28px;
-    font-family: 'Cinzel', serif;
-    font-size: 9px;
-    letter-spacing: 0.4em;
-    color: rgba(201,169,110,0.4);
-    text-transform: uppercase;
-    animation: hint-pulse 2.5s ease-in-out infinite;
-  }
+#cover-title {
+  font-family: 'Cinzel', serif;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  text-align: center;
+  text-shadow: 0 0 40px rgba(201,169,110,0.35);
+  line-height: 1.25;
+}
 
-  @keyframes hint-pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.9; }
-  }
+.cover-rule {
+  width: 55%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
 
-  /* ── BOOK (open state) ── */
-  #book-wrap {
-    display: none;
-    position: relative;
-    width: 900px; height: 580px;
-    transform-style: preserve-3d;
-  }
+#cover-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px;
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: 0.38em;
+  color: rgba(201,169,110,0.5);
+  text-transform: uppercase;
+  text-align: center;
+}
 
-  #book {
-    width: 100%; height: 100%;
-    display: flex;
-    position: relative;
-    transform-style: preserve-3d;
-  }
+#open-hint {
+  position: absolute; bottom: 24px;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.45em;
+  color: rgba(201,169,110,0.35);
+  text-transform: uppercase;
+  animation: breathe 2.8s ease-in-out infinite;
+}
 
-  .book-side {
-    width: 50%; height: 100%;
-    position: relative;
-    overflow: hidden;
-  }
+@keyframes breathe {
+  0%,100% { opacity:0.35; transform: translateY(0); }
+  50% { opacity:0.8; transform: translateY(-2px); }
+}
 
-  #left-side {
-    border-radius: 16px 0 0 16px;
-    box-shadow: -4px 0 0 var(--leather-dark), -8px 0 0 var(--leather-mid), -12px 0 0 var(--leather-dark);
-  }
+.glint {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(201,169,110,0.05) 50%, transparent 60%);
+  animation: glint-sweep 7s ease-in-out infinite;
+  pointer-events: none;
+}
 
-  #right-side {
-    border-radius: 0 16px 16px 0;
-  }
+@keyframes glint-sweep {
+  0%,100% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
+}
 
-  .page {
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.04) 0%, transparent 60%),
-      linear-gradient(180deg, rgba(8,25,45,0.95) 0%, rgba(5,15,28,0.98) 100%);
-    border: 1px solid var(--page-border);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 40px 36px;
-    overflow: hidden;
-  }
+/* ── BOOK STAGE ── */
+#stage {
+  position: fixed; inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
 
-  .page::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,245,255,0.03) 39px, rgba(0,245,255,0.03) 40px);
-    pointer-events: none;
-  }
+#stage.visible {
+  opacity: 1;
+  pointer-events: all;
+}
 
-  /* spine */
-  #spine {
-    position: absolute;
-    left: 50%; top: 0;
-    transform: translateX(-50%);
-    width: 24px; height: 100%;
-    background: linear-gradient(90deg, var(--leather-dark), var(--leather-mid), var(--leather-dark));
-    z-index: 10;
-    box-shadow: 0 0 20px rgba(0,0,0,0.8);
-  }
+#flipbook {
+  /* sized by JS */
+}
 
-  #spine::after {
-    content: '';
-    position: absolute;
-    left: 50%; top: 10%;
-    transform: translateX(-50%);
-    width: 2px; height: 80%;
-    background: linear-gradient(180deg, transparent, var(--gold-dim), transparent);
-  }
+/* turn.js page styles */
+.page {
+  background: var(--page-dark);
+  overflow: hidden;
+  position: relative;
+}
 
-  /* page image */
-  .page-image {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    position: absolute; inset: 0;
-    opacity: 0.7;
-    transition: opacity 0.4s;
-  }
+.page-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
 
-  .page-image-overlay {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg,
-      rgba(5,12,25,0.5) 0%,
-      rgba(5,12,25,0.1) 40%,
-      rgba(5,12,25,0.1) 60%,
-      rgba(5,12,25,0.6) 100%
-    );
-  }
+.page-img.loaded { opacity: 0.75; }
 
-  /* page content */
-  .page-content {
-    position: relative; z-index: 2;
-    width: 100%; height: 100%;
-    display: flex; flex-direction: column;
-    padding: 32px 28px;
-  }
+.page-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(5,12,25,0.55) 0%,
+    rgba(5,12,25,0.08) 35%,
+    rgba(5,12,25,0.08) 65%,
+    rgba(5,12,25,0.65) 100%
+  );
+  pointer-events: none;
+}
 
-  .page-number {
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.3em;
-    color: rgba(0,245,255,0.5);
-    margin-bottom: auto;
-  }
+/* scanline texture */
+.page-texture {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 38px,
+    rgba(0,245,255,0.025) 38px,
+    rgba(0,245,255,0.025) 39px
+  );
+  pointer-events: none;
+}
 
-  .page-caption {
-    margin-top: auto;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 14px;
-    font-style: italic;
-    font-weight: 300;
-    color: rgba(232,224,208,0.8);
-    line-height: 1.6;
-    border-top: 1px solid rgba(0,245,255,0.1);
-    padding-top: 12px;
-  }
+/* cyan glow top */
+.page-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,245,255,0.3), transparent);
+  pointer-events: none;
+}
 
-  /* turning page */
-  #turning-page {
-    position: absolute;
-    top: 0; right: 0;
-    width: 50%; height: 100%;
-    transform-origin: left center;
-    transform-style: preserve-3d;
-    z-index: 20;
-    pointer-events: none;
-    transition: none;
-  }
+.page-num {
+  position: absolute;
+  bottom: 22px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: rgba(0,245,255,0.4);
+}
 
-  .turn-face {
-    position: absolute; inset: 0;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    border-radius: 0 16px 16px 0;
-    overflow: hidden;
-  }
+.page-num.left { left: 24px; }
+.page-num.right { right: 24px; }
 
-  .turn-back {
-    transform: rotateY(180deg);
-    border-radius: 16px 0 0 16px;
-  }
+.page-caption {
+  position: absolute;
+  bottom: 38px; left: 24px; right: 24px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(232,224,208,0.7);
+  line-height: 1.55;
+  border-top: 1px solid rgba(0,245,255,0.1);
+  padding-top: 10px;
+}
 
-  /* page curl shadow */
-  .page-curl-shadow {
-    position: absolute;
-    top: 0; left: 0; bottom: 0;
-    width: 60px;
-    background: linear-gradient(90deg, rgba(0,0,0,0.5), transparent);
-    pointer-events: none;
-    z-index: 5;
-  }
+/* hard page (cover/back) */
+.hard {
+  background: linear-gradient(150deg, var(--leather-mid), var(--leather-dark));
+}
 
-  /* nav controls */
-  #nav {
-    position: fixed;
-    bottom: 36px; left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    gap: 20px;
-    align-items: center;
-    z-index: 100;
-  }
+/* spine center line */
+#center-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, rgba(201,169,110,0.15), transparent);
+  pointer-events: none;
+  z-index: 5;
+}
 
-  .nav-btn {
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.3em;
-    color: var(--ui-green);
-    border: 1px solid var(--ui-green);
-    background: rgba(0,127,102,0.08);
-    padding: 10px 24px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.25s;
-    border-radius: 2px;
-  }
+/* close */
+#close-btn {
+  position: fixed;
+  top: 24px; right: 32px;
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.4em;
+  color: var(--ui-red-light);
+  border: 1px solid var(--ui-red);
+  background: rgba(127,25,0,0.06);
+  padding: 9px 22px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.25s;
+  border-radius: 2px;
+  display: none;
+}
 
-  .nav-btn:hover {
-    background: rgba(0,127,102,0.2);
-    box-shadow: 0 0 20px rgba(0,127,102,0.3);
-    color: var(--cyan-dim);
-    border-color: var(--cyan-dim);
-  }
+#close-btn:hover {
+  background: rgba(127,25,0,0.18);
+  box-shadow: 0 0 16px rgba(127,25,0,0.3);
+}
 
-  .nav-btn:disabled {
-    opacity: 0.2;
-    cursor: default;
-    box-shadow: none;
-  }
+/* drag hint */
+#drag-hint {
+  position: fixed;
+  bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  color: rgba(0,245,255,0.3);
+  display: none;
+  pointer-events: none;
+  animation: breathe 3.5s ease-in-out infinite;
+}
 
-  #page-indicator {
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.4em;
-    color: rgba(201,169,110,0.5);
-    min-width: 80px;
-    text-align: center;
-  }
-
-  /* close btn */
-  #close-btn {
-    position: fixed;
-    top: 28px; right: 36px;
-    display: none;
-    font-family: 'Cinzel', serif;
-    font-size: 9px;
-    letter-spacing: 0.4em;
-    color: var(--ui-red-light);
-    border: 1px solid var(--ui-red);
-    background: rgba(127,25,0,0.08);
-    padding: 8px 20px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.25s;
-    border-radius: 2px;
-    z-index: 100;
-  }
-
-  #close-btn:hover {
-    background: rgba(127,25,0,0.2);
-    box-shadow: 0 0 20px rgba(127,25,0,0.4);
-  }
-
-  /* TOC overlay */
-  #toc {
-    position: fixed; inset: 0;
-    background: rgba(5,10,20,0.96);
-    z-index: 200;
-    display: none;
-    align-items: center; justify-content: center;
-    flex-direction: column;
-    gap: 0;
-  }
-
-  #toc.visible { display: flex; }
-
-  #toc-title {
-    font-family: 'Cinzel', serif;
-    font-size: 22px;
-    letter-spacing: 0.3em;
-    color: var(--gold);
-    margin-bottom: 48px;
-    text-align: center;
-  }
-
-  .toc-item {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 18px;
-    font-style: italic;
-    color: rgba(232,224,208,0.7);
-    padding: 12px 40px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid rgba(0,245,255,0.05);
-    width: 400px;
-    text-align: center;
-    transition: all 0.2s;
-    position: relative;
-  }
-
-  .toc-item::before {
-    content: attr(data-num);
-    position: absolute; left: 0;
-    font-family: 'Cinzel', serif;
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    color: var(--ui-green);
-    top: 50%; transform: translateY(-50%);
-  }
-
-  .toc-item:hover {
-    color: var(--cyan-dim);
-    border-color: rgba(0,245,255,0.15);
-    padding-left: 52px;
-  }
-
-  #toc-close {
-    margin-top: 40px;
-    font-family: 'Cinzel', serif;
-    font-size: 9px;
-    letter-spacing: 0.4em;
-    color: var(--ui-red-light);
-    border: 1px solid var(--ui-red);
-    background: transparent;
-    padding: 8px 28px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.25s;
-    border-radius: 2px;
-  }
-
-  #toc-close:hover { background: rgba(127,25,0,0.2); }
-
-  /* chapter label */
-  #chapter-label {
-    position: fixed;
-    top: 28px; left: 36px;
-    display: none;
-    font-family: 'Cinzel', serif;
-    font-size: 9px;
-    letter-spacing: 0.4em;
-    color: rgba(201,169,110,0.5);
-    text-transform: uppercase;
-    z-index: 100;
-    cursor: pointer;
-    border-bottom: 1px solid transparent;
-    transition: all 0.2s;
-  }
-
-  #chapter-label:hover {
-    color: var(--gold);
-    border-color: var(--gold-dim);
-  }
-
-  /* opening animation */
-  #opening-overlay {
-    position: fixed; inset: 0;
-    z-index: 300;
-    display: flex; align-items: center; justify-content: center;
-    background: #050d18;
-    transition: opacity 1s ease;
-  }
-
-  #opening-overlay.fade { opacity: 0; pointer-events: none; }
-
-  /* drag hint */
-  #drag-hint {
-    position: fixed;
-    bottom: 90px; left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 12px;
-    font-style: italic;
-    color: rgba(0,245,255,0.4);
-    letter-spacing: 0.15em;
-    display: none;
-    animation: hint-pulse 3s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  /* glint */
-  @keyframes glint {
-    0% { transform: translateX(-100%) skewX(-20deg); }
-    100% { transform: translateX(300%) skewX(-20deg); }
-  }
-
-  .glint-line {
-    position: absolute;
-    top: 0; left: 0;
-    width: 40%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(201,169,110,0.06), transparent);
-    animation: glint 6s ease-in-out infinite;
-    pointer-events: none;
-  }
+/* chapter marker */
+#chapter-tag {
+  position: fixed;
+  top: 24px; left: 32px;
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.4em;
+  color: rgba(201,169,110,0.4);
+  text-transform: uppercase;
+  display: none;
+}
 </style>
 </head>
 <body>
 
 <canvas id="bg-canvas"></canvas>
 
-<!-- opening overlay -->
-<div id="opening-overlay">
-  <div id="cover-wrap" onclick="openBook()">
-    <div id="cover">
-      <div class="glint-line"></div>
-      <div id="cover-inner">
-        <div id="cover-symbol">
-          <svg id="cover-eye" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="16" cy="16" rx="13" ry="8" stroke="#c9a96e" stroke-width="0.8" opacity="0.6"/>
-            <circle cx="16" cy="16" r="5" stroke="#c9a96e" stroke-width="0.8" opacity="0.8"/>
-            <circle cx="16" cy="16" r="2" fill="#c9a96e" opacity="0.9"/>
-            <line x1="3" y1="16" x2="7" y2="16" stroke="#c9a96e" stroke-width="0.6" opacity="0.4"/>
-            <line x1="25" y1="16" x2="29" y2="16" stroke="#c9a96e" stroke-width="0.6" opacity="0.4"/>
+<!-- COVER -->
+<div id="cover-screen">
+  <div id="cover-book" onclick="openTome()">
+    <div id="cover-spine"></div>
+    <div id="cover-pages"></div>
+    <div id="cover-face">
+      <div class="glint"></div>
+      <div id="cover-content">
+        <div class="cover-ornament">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <ellipse cx="17" cy="17" rx="13" ry="8" stroke="#c9a96e" stroke-width="0.7" opacity="0.65"/>
+            <circle cx="17" cy="17" r="5" stroke="#c9a96e" stroke-width="0.7" opacity="0.8"/>
+            <circle cx="17" cy="17" r="2.2" fill="#c9a96e" opacity="0.9"/>
+            <line x1="4" y1="17" x2="8" y2="17" stroke="#c9a96e" stroke-width="0.5" opacity="0.4"/>
+            <line x1="26" y1="17" x2="30" y2="17" stroke="#c9a96e" stroke-width="0.5" opacity="0.4"/>
+            <line x1="17" y1="4" x2="17" y2="8" stroke="#c9a96e" stroke-width="0.5" opacity="0.25"/>
+            <line x1="17" y1="26" x2="17" y2="30" stroke="#c9a96e" stroke-width="0.5" opacity="0.25"/>
           </svg>
         </div>
         <div id="cover-title">BY THE<br>HEARTH</div>
-        <div id="cover-divider"></div>
-        <div id="cover-subtitle">A Visual Tome</div>
-        <div id="cover-open-hint">Open</div>
+        <div class="cover-rule"></div>
+        <div id="cover-sub">A Visual Tome</div>
+        <div id="open-hint">Open</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- book -->
-<div id="scene">
-  <div id="book-wrap">
-    <div id="book">
-      <div id="left-side" class="book-side">
-        <div id="left-page" class="page">
-          <div id="left-img-wrap" style="position:absolute;inset:0;overflow:hidden;">
-            <img id="left-img" class="page-image" src="" alt="" style="display:none;">
-            <div class="page-image-overlay"></div>
-          </div>
-          <div class="page-content">
-            <div id="left-page-num" class="page-number"></div>
-            <div id="left-caption" class="page-caption"></div>
-          </div>
-          <div class="page-curl-shadow" style="right:0;left:auto;background:linear-gradient(270deg,rgba(0,0,0,0.4),transparent);"></div>
-        </div>
-      </div>
-
-      <div id="spine"></div>
-
-      <div id="right-side" class="book-side">
-        <div id="right-page" class="page">
-          <div id="right-img-wrap" style="position:absolute;inset:0;overflow:hidden;">
-            <img id="right-img" class="page-image" src="" alt="" style="display:none;">
-            <div class="page-image-overlay"></div>
-          </div>
-          <div class="page-content">
-            <div id="right-page-num" class="page-number"></div>
-            <div id="right-caption" class="page-caption"></div>
-          </div>
-          <div class="page-curl-shadow"></div>
-        </div>
-
-        <!-- turning page overlay -->
-        <div id="turning-page">
-          <div class="turn-face">
-            <div id="turn-front-img-wrap" style="position:absolute;inset:0;overflow:hidden;border-radius:0 16px 16px 0;">
-              <img id="turn-front-img" class="page-image" src="" alt="" style="display:none;">
-              <div class="page-image-overlay"></div>
-            </div>
-            <div class="page-content" style="position:relative;z-index:2;">
-              <div id="turn-front-num" class="page-number"></div>
-            </div>
-          </div>
-          <div class="turn-face turn-back"
-               style="background:radial-gradient(ellipse at 50% 0%,rgba(0,245,255,0.04) 0%,transparent 60%),linear-gradient(180deg,rgba(8,25,45,0.95),rgba(5,15,28,0.98));border:1px solid rgba(0,245,255,0.15);">
-            <div id="turn-back-img-wrap" style="position:absolute;inset:0;overflow:hidden;border-radius:16px 0 0 16px;">
-              <img id="turn-back-img" class="page-image" src="" alt="" style="display:none;">
-              <div class="page-image-overlay"></div>
-            </div>
-            <div class="page-content" style="position:relative;z-index:2;">
-              <div id="turn-back-num" class="page-number"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- BOOK STAGE -->
+<div id="stage">
+  <div id="center-line"></div>
+  <div id="flipbook"></div>
 </div>
 
-<div id="chapter-label" onclick="showTOC()">Contents</div>
-<div id="drag-hint">drag the page — or use the arrows below</div>
-
-<div id="nav">
-  <button class="nav-btn" id="prev-btn" onclick="prevPage()">&#8592; Prev</button>
-  <div id="page-indicator"></div>
-  <button class="nav-btn" id="next-btn" onclick="nextPage()">Next &#8594;</button>
-</div>
-
-<button id="close-btn" onclick="closeBook()">&#10005; Close</button>
-
-<div id="toc">
-  <div id="toc-title">Table of Contents</div>
-  <div id="toc-items"></div>
-  <button id="toc-close" onclick="hideTOC()">Close</button>
-</div>
+<button id="close-btn" onclick="closeTome()">&#10005; Close</button>
+<div id="drag-hint">drag the edge of the page to turn</div>
+<div id="chapter-tag">By The Hearth</div>
 
 <script>
-const CHAPTERS = [
-  {
-    title: "Portfolio",
-    pages: [
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1776482588301-UDUUEXL1KGBSHEIVYQZ5/BTH06966.jpg", caption: "Light finds its way." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1773796720236-EIX0PIAPZM2IBM1SYGME/grief4.jpg", caption: "Honor remains when all else is lost." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1772462342517-EL7BIKMZH5L3U8Q7YDWR/import3.1+%28162%29-4.jpg", caption: "The soul is in your keeping alone." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1771174930532-22WB6XQULOFF32NHFQCW/import2+%28343%29.jpg", caption: "Work without praise. Without audience." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770673456685-ZDFV2X2RMOB0AOCZ8ZVI/importio2.9+%28381%29.jpg", caption: "Living photographs — moments held." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770009126806-M127902Y57138GKOF93P/import.1+%2849%29.jpg", caption: "Irreplaceable." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1769222511535-9PC0CX1XQ57G9H3ZKXEO/import1+%2858%29.jpg", caption: "There is a crack in everything — that's how the light gets in." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1768753280619-GQZNU34Q991R4O8C83H9/tokyodrift+%2821%29.jpg", caption: "And on they went." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1762740451204-SULUDBK2FMVDACBSMKQM/Alivia+Massey+COG4.jpg", caption: "Test of truth." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1759726003101-8SZRIYGOLJBWWXHQV8LK/BTH03523.jpg", caption: "Culture." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1757907326235-QMG8B8YC2IAWKJS1V8Q6/BTH09500.jpg", caption: "You'll do just fine." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1756694967066-O6Q6C4KC2RZN87YC4WX0/BTH08543.jpg", caption: "Finding belonging." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1753408875853-D6PMF07IB1RYC9WRDSH8/DSC00062.jpg", caption: "I am become nothing. Creator of worlds." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1751689504972-WV0SF212HPH66NMG6GT3/DSC06722.jpg", caption: "Are you proud?" },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1750401570501-SN6Q6JTQO4ISRZ2ZL79A/BTH04455.jpg", caption: "Letting go." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1745868109985-1JAIS40LTGDXT2MNL17H/BTH03436.jpg", caption: "The pain it took to become so gentle." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1741631000986-1NCOYCP2BCYD5SBY13IC/Seattle+Skyscraper.jpg", caption: "Silence has never betrayed me." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1738963144409-6TIJBETVZ4UWTAAV0RHO/BTH06847.jpg", caption: "Bring back bravery before benevolence dies." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1733721766570-KCHYR1SUP5J1JV2HDEMH/DSC05966.jpg", caption: "Miles." },
-      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1728944423933-SR2MXO292OXLUA7B7KH3/DSC04013.jpg", caption: "The divide." },
-    ]
-  }
+const PAGES = [
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1776482588301-UDUUEXL1KGBSHEIVYQZ5/BTH06966.jpg", caption: "Light finds its way." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1773796720236-EIX0PIAPZM2IBM1SYGME/grief4.jpg", caption: "Honor remains when all else is lost." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1772462342517-EL7BIKMZH5L3U8Q7YDWR/import3.1+%28162%29-4.jpg", caption: "The soul is in your keeping alone." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1771174930532-22WB6XQULOFF32NHFQCW/import2+%28343%29.jpg", caption: "Work without praise. Without audience." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770673456685-ZDFV2X2RMOB0AOCZ8ZVI/importio2.9+%28381%29.jpg", caption: "Living photographs." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770009126806-M127902Y57138GKOF93P/import.1+%2849%29.jpg", caption: "Irreplaceable." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1769222511535-9PC0CX1XQ57G9H3ZKXEO/import1+%2858%29.jpg", caption: "There is a crack in everything — that's how the light gets in." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1768753280619-GQZNU34Q991R4O8C83H9/tokyodrift+%2821%29.jpg", caption: "And on they went." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1762740451204-SULUDBK2FMVDACBSMKQM/Alivia+Massey+COG4.jpg", caption: "Test of truth." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1759726003101-8SZRIYGOLJBWWXHQV8LK/BTH03523.jpg", caption: "Culture." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1757907326235-QMG8B8YC2IAWKJS1V8Q6/BTH09500.jpg", caption: "You'll do just fine." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1756694967066-O6Q6C4KC2RZN87YC4WX0/BTH08543.jpg", caption: "Finding belonging." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1753408875853-D6PMF07IB1RYC9WRDSH8/DSC00062.jpg", caption: "I am become nothing. Creator of worlds." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1751689504972-WV0SF212HPH66NMG6GT3/DSC06722.jpg", caption: "Are you proud?" },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1750401570501-SN6Q6JTQO4ISRZ2ZL79A/BTH04455.jpg", caption: "Letting go." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1745868109985-1JAIS40LTGDXT2MNL17H/BTH03436.jpg", caption: "The pain it took to become so gentle." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1741631000986-1NCOYCP2BCYD5SBY13IC/Seattle+Skyscraper.jpg", caption: "Silence has never betrayed me." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1738963144409-6TIJBETVZ4UWTAAV0RHO/BTH06847.jpg", caption: "Bring back bravery before benevolence dies." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1733721766570-KCHYR1SUP5J1JV2HDEMH/DSC05966.jpg", caption: "Miles." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1728944423933-SR2MXO292OXLUA7B7KH3/DSC04013.jpg", caption: "The divide." },
 ];
 
-let allPages = [];
-let currentSpread = 0;
-let isAnimating = false;
-let isDragging = false;
-let dragStartX = 0;
+function buildPage(data, pageIndex, side) {
+  const div = document.createElement('div');
+  div.className = 'page';
 
-function buildPages() {
-  allPages = [];
-  CHAPTERS.forEach(ch => {
-    ch.pages.forEach((p, i) => {
-      allPages.push({ ...p, chapter: ch.title, num: i + 1, total: ch.pages.length });
-    });
-  });
-}
+  const glow = document.createElement('div');
+  glow.className = 'page-glow';
+  div.appendChild(glow);
 
-function totalSpreads() { return Math.ceil(allPages.length / 2); }
+  const tex = document.createElement('div');
+  tex.className = 'page-texture';
+  div.appendChild(tex);
 
-function getSpreadPages(spread) {
-  const left = allPages[spread * 2] || null;
-  const right = allPages[spread * 2 + 1] || null;
-  return { left, right };
-}
+  if (data && data.img) {
+    const img = document.createElement('img');
+    img.className = 'page-img';
+    img.alt = data.caption || '';
+    div.appendChild(img);
 
-function setPageContent(side, pageData, spreadIndex) {
-  const img = document.getElementById(side + '-img');
-  const num = document.getElementById(side + '-page-num');
-  const caption = document.getElementById(side + '-caption');
-  const wrap = document.getElementById(side + '-img-wrap');
+    const ov = document.createElement('div');
+    ov.className = 'page-overlay';
+    div.appendChild(ov);
 
-  if (!pageData) {
-    if (img) { img.src = ''; img.style.display = 'none'; }
-    if (num) num.textContent = '';
-    if (caption) caption.textContent = '';
-    return;
+    // lazy load
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          img.src = data.img;
+          img.onload = () => img.classList.add('loaded');
+          observer.disconnect();
+        }
+      });
+    }, { rootMargin: '200px' });
+    observer.observe(div);
+
+    if (data.caption) {
+      const cap = document.createElement('div');
+      cap.className = 'page-caption';
+      cap.textContent = data.caption;
+      div.appendChild(cap);
+    }
   }
 
-  if (img) {
-    img.src = pageData.img;
-    img.style.display = 'block';
-    img.style.opacity = '0';
-    img.onload = () => { img.style.transition = 'opacity 0.6s'; img.style.opacity = '0.7'; };
-  }
-  if (num) num.textContent = 'pg. ' + String(spreadIndex * 2 + (side === 'right' ? 2 : 1)).padStart(2, '0');
-  if (caption) caption.textContent = pageData.caption || '';
+  const num = document.createElement('div');
+  num.className = 'page-num ' + side;
+  num.textContent = String(pageIndex).padStart(2, '0');
+  div.appendChild(num);
+
+  return div;
 }
 
-function renderSpread(spread) {
-  const { left, right } = getSpreadPages(spread);
-  setPageContent('left', left, spread);
-  setPageContent('right', right, spread);
+function buildHardCover(isBack) {
+  const div = document.createElement('div');
+  div.className = 'page hard';
+  div.style.background = 'linear-gradient(150deg, #2d1200, #1a0800, #2d1200)';
 
-  const indicator = document.getElementById('page-indicator');
-  const total = allPages.length;
-  const from = spread * 2 + 1;
-  const to = Math.min(spread * 2 + 2, total);
-  indicator.textContent = from + (to > from ? '–' + to : '') + ' / ' + total;
-
-  document.getElementById('prev-btn').disabled = spread === 0;
-  document.getElementById('next-btn').disabled = spread >= totalSpreads() - 1;
-}
-
-function animatePageTurn(direction, callback) {
-  if (isAnimating) return;
-  isAnimating = true;
-
-  const tp = document.getElementById('turning-page');
-  const nextSpread = direction === 'next' ? currentSpread + 1 : currentSpread - 1;
-
-  if (direction === 'next') {
-    const { right } = getSpreadPages(currentSpread);
-    const { left: nextLeft, right: nextRight } = getSpreadPages(nextSpread);
-
-    const tfi = document.getElementById('turn-front-img');
-    const tbi = document.getElementById('turn-back-img');
-    const tfn = document.getElementById('turn-front-num');
-    const tbn = document.getElementById('turn-back-num');
-
-    if (right && tfi) {
-      tfi.src = right.img; tfi.style.display = 'block'; tfi.style.opacity = '0.7';
-    }
-    if (nextLeft && tbi) {
-      tbi.src = nextLeft.img; tbi.style.display = 'block'; tbi.style.opacity = '0.7';
-    }
-    if (tfn) tfn.textContent = 'pg. ' + String(currentSpread * 2 + 2).padStart(2, '0');
-    if (tbn) tbn.textContent = 'pg. ' + String(nextSpread * 2 + 1).padStart(2, '0');
-
-    tp.style.transition = 'none';
-    tp.style.transform = 'rotateY(0deg)';
-    tp.style.pointerEvents = 'none';
-
-    requestAnimationFrame(() => {
-      tp.style.transition = 'transform 0.7s cubic-bezier(0.645,0.045,0.355,1.0)';
-      tp.style.transform = 'rotateY(-180deg)';
-    });
-
-    setTimeout(() => {
-      currentSpread = nextSpread;
-      renderSpread(currentSpread);
-      tp.style.transition = 'none';
-      tp.style.transform = 'rotateY(0deg)';
-      const tfi2 = document.getElementById('turn-front-img');
-      const tbi2 = document.getElementById('turn-back-img');
-      if (tfi2) { tfi2.src = ''; tfi2.style.display = 'none'; }
-      if (tbi2) { tbi2.src = ''; tbi2.style.display = 'none'; }
-      isAnimating = false;
-      if (callback) callback();
-    }, 720);
-
+  if (!isBack) {
+    div.innerHTML = `
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;">
+        <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:900;letter-spacing:0.2em;color:#c9a96e;text-align:center;text-shadow:0 0 30px rgba(201,169,110,0.3);">BY THE<br>HEARTH</div>
+        <div style="width:50%;height:1px;background:linear-gradient(90deg,transparent,#8a6b3a,transparent);"></div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;letter-spacing:0.35em;color:rgba(201,169,110,0.45);text-transform:uppercase;">A Visual Tome</div>
+      </div>
+      <div style="position:absolute;inset:14px;border:1px solid rgba(138,107,58,0.4);border-radius:1px;"></div>
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);pointer-events:none;"></div>
+    `;
   } else {
-    const { left } = getSpreadPages(currentSpread);
-    const { left: prevLeft, right: prevRight } = getSpreadPages(nextSpread);
-
-    const tfi = document.getElementById('turn-front-img');
-    const tbi = document.getElementById('turn-back-img');
-
-    if (prevRight && tbi) {
-      tbi.src = prevRight.img; tbi.style.display = 'block'; tbi.style.opacity = '0.7';
-    }
-    if (left && tfi) {
-      tfi.src = left.img; tfi.style.display = 'block'; tfi.style.opacity = '0.7';
-    }
-
-    tp.style.transition = 'none';
-    tp.style.transform = 'rotateY(-180deg)';
-    tp.style.pointerEvents = 'none';
-
-    requestAnimationFrame(() => {
-      tp.style.transition = 'transform 0.7s cubic-bezier(0.645,0.045,0.355,1.0)';
-      tp.style.transform = 'rotateY(0deg)';
-    });
-
-    setTimeout(() => {
-      currentSpread = nextSpread;
-      renderSpread(currentSpread);
-      tp.style.transition = 'none';
-      tp.style.transform = 'rotateY(0deg)';
-      const tfi2 = document.getElementById('turn-front-img');
-      const tbi2 = document.getElementById('turn-back-img');
-      if (tfi2) { tfi2.src = ''; tfi2.style.display = 'none'; }
-      if (tbi2) { tbi2.src = ''; tbi2.style.display = 'none'; }
-      isAnimating = false;
-      if (callback) callback();
-    }, 720);
+    div.innerHTML = `
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+        <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.5em;color:rgba(201,169,110,0.2);text-transform:uppercase;">Finis</div>
+      </div>
+      <div style="position:absolute;inset:14px;border:1px solid rgba(138,107,58,0.25);border-radius:1px;"></div>
+    `;
   }
+
+  return div;
 }
 
-function nextPage() {
-  if (currentSpread < totalSpreads() - 1) animatePageTurn('next');
-}
+let tomeOpen = false;
 
-function prevPage() {
-  if (currentSpread > 0) animatePageTurn('prev');
-}
+function openTome() {
+  if (tomeOpen) return;
+  tomeOpen = true;
 
-function openBook() {
-  const overlay = document.getElementById('opening-overlay');
-  overlay.classList.add('fade');
+  document.getElementById('cover-screen').classList.add('hidden');
 
   setTimeout(() => {
-    overlay.style.display = 'none';
-    document.getElementById('book-wrap').style.display = 'block';
-    document.getElementById('nav').style.display = 'flex';
+    document.getElementById('stage').classList.add('visible');
     document.getElementById('close-btn').style.display = 'block';
-    document.getElementById('chapter-label').style.display = 'block';
     document.getElementById('drag-hint').style.display = 'block';
-
-    buildPages();
-    renderSpread(0);
-    setupDrag();
-    setupKeyboard();
-  }, 900);
+    document.getElementById('chapter-tag').style.display = 'block';
+    initFlipbook();
+  }, 800);
 }
 
-function closeBook() {
-  document.getElementById('book-wrap').style.display = 'none';
-  document.getElementById('nav').style.display = 'none';
+function closeTome() {
+  tomeOpen = false;
+  document.getElementById('stage').classList.remove('visible');
   document.getElementById('close-btn').style.display = 'none';
-  document.getElementById('chapter-label').style.display = 'none';
   document.getElementById('drag-hint').style.display = 'none';
+  document.getElementById('chapter-tag').style.display = 'none';
 
-  const overlay = document.getElementById('opening-overlay');
-  overlay.style.display = 'flex';
-  overlay.style.opacity = '0';
-  overlay.classList.remove('fade');
+  // destroy turn.js
+  try { $('#flipbook').turn('destroy'); } catch(e) {}
+  $('#flipbook').empty();
+
+  const cs = document.getElementById('cover-screen');
+  cs.classList.remove('hidden');
+  cs.style.opacity = '0';
   requestAnimationFrame(() => {
-    overlay.style.transition = 'opacity 0.6s';
-    overlay.style.opacity = '1';
+    cs.style.transition = 'opacity 0.8s ease';
+    cs.style.opacity = '1';
   });
-  currentSpread = 0;
 }
 
-function showTOC() {
-  const toc = document.getElementById('toc');
-  const items = document.getElementById('toc-items');
-  items.innerHTML = '';
-  CHAPTERS.forEach((ch, ci) => {
-    const div = document.createElement('div');
-    div.className = 'toc-item';
-    div.setAttribute('data-num', String(ci + 1).padStart(2, '0'));
-    div.textContent = ch.title;
-    div.onclick = () => {
-      currentSpread = 0;
-      renderSpread(0);
-      hideTOC();
-    };
-    items.appendChild(div);
+function initFlipbook() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const pageH = Math.min(vh * 0.82, 620);
+  const pageW = Math.min(vw * 0.4, 480);
+  const bookW = pageW * 2;
+  const bookH = pageH;
+
+  const fb = document.getElementById('flipbook');
+  fb.style.width = bookW + 'px';
+  fb.style.height = bookH + 'px';
+  fb.style.position = 'relative';
+
+  // turn.js needs pages as children BEFORE init
+  // page count: hard-front + content pages (even number) + hard-back
+  const contentPages = PAGES.length % 2 === 0 ? PAGES.length : PAGES.length + 1;
+  const totalPages = 2 + contentPages; // hard covers included
+
+  // front hard cover (pages 1+2 are the spread when closed)
+  const frontCover = buildHardCover(false);
+  frontCover.className += ' hard';
+  $(fb).append(frontCover);
+
+  // blank left page (first spread right = page 2, but we need a left first)
+  const blankFirst = document.createElement('div');
+  blankFirst.className = 'page';
+  blankFirst.style.background = '#06101e';
+  blankFirst.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="font-family:\'Cinzel\',serif;font-size:9px;letter-spacing:0.5em;color:rgba(0,245,255,0.15);text-transform:uppercase;">Begin</div></div>';
+  $(fb).append(blankFirst);
+
+  // content pages
+  PAGES.forEach((data, i) => {
+    const side = i % 2 === 0 ? 'left' : 'right';
+    const pg = buildPage(data, i + 1, side);
+    $(fb).append(pg);
   });
-  toc.classList.add('visible');
-}
 
-function hideTOC() {
-  document.getElementById('toc').classList.remove('visible');
-}
-
-function setupDrag() {
-  const rs = document.getElementById('right-side');
-  const ls = document.getElementById('left-side');
-
-  function onDragStart(e) {
-    if (isAnimating) return;
-    isDragging = true;
-    dragStartX = e.touches ? e.touches[0].clientX : e.clientX;
+  // padding page if odd
+  if (PAGES.length % 2 !== 0) {
+    const blank = document.createElement('div');
+    blank.className = 'page';
+    blank.style.background = '#06101e';
+    $(fb).append(blank);
   }
 
-  function onDragEnd(e) {
-    if (!isDragging) return;
-    isDragging = false;
-    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    const delta = endX - dragStartX;
-    if (Math.abs(delta) > 60) {
-      if (delta < 0) nextPage();
-      else prevPage();
+  // back hard cover
+  const backCover = buildHardCover(true);
+  $(fb).append(backCover);
+
+  // init turn.js
+  $(fb).turn({
+    width: bookW,
+    height: bookH,
+    autoCenter: true,
+    display: 'double',
+    acceleration: true,
+    gradients: true,
+    elevation: 50,
+    when: {
+      turned: function(e, page) {
+        // hide hint after first turn
+        document.getElementById('drag-hint').style.opacity = '0';
+      }
     }
-  }
-
-  [rs, ls].forEach(el => {
-    el.addEventListener('mousedown', onDragStart);
-    el.addEventListener('touchstart', onDragStart, { passive: true });
   });
-  document.addEventListener('mouseup', onDragEnd);
-  document.addEventListener('touchend', onDragEnd);
-}
 
-function setupKeyboard() {
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight') nextPage();
-    if (e.key === 'ArrowLeft') prevPage();
-    if (e.key === 'Escape') hideTOC();
+  // touch support
+  $(fb).bind('touchstart', function(e) {
+    const touch = e.originalEvent.touches[0];
+    $(this).data('touchstart', touch.pageX);
+  });
+
+  $(fb).bind('touchend', function(e) {
+    const startX = $(this).data('touchstart');
+    const touch = e.originalEvent.changedTouches[0];
+    const delta = touch.pageX - startX;
+    if (Math.abs(delta) > 40) {
+      if (delta < 0) $(this).turn('next');
+      else $(this).turn('previous');
+    }
+  });
+
+  // keyboard
+  $(document).off('keydown.turn').on('keydown.turn', function(e) {
+    if (e.key === 'ArrowRight') $(fb).turn('next');
+    if (e.key === 'ArrowLeft') $(fb).turn('previous');
   });
 }
 
@@ -921,61 +654,54 @@ const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
 let W, H, particles = [];
 
-function resizeCanvas() {
+function resize() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
 }
 
-function makeParticle() {
+function makeP() {
   return {
     x: Math.random() * W,
     y: Math.random() * H,
-    r: Math.random() * 1.2 + 0.2,
-    speed: Math.random() * 0.15 + 0.05,
-    angle: Math.random() * Math.PI * 2,
-    drift: (Math.random() - 0.5) * 0.005,
-    alpha: Math.random() * 0.4 + 0.05,
-    cyan: Math.random() > 0.85
+    r: Math.random() * 1.1 + 0.15,
+    vx: (Math.random() - 0.5) * 0.08,
+    vy: (Math.random() - 0.5) * 0.08,
+    alpha: Math.random() * 0.35 + 0.04,
+    cyan: Math.random() > 0.82
   };
 }
 
-function initParticles() {
-  particles = Array.from({ length: 120 }, makeParticle);
-}
+function initP() { particles = Array.from({ length: 100 }, makeP); }
 
 function drawBg() {
   ctx.clearRect(0, 0, W, H);
-  const grd = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
-  grd.addColorStop(0, '#0a1628');
-  grd.addColorStop(0.5, '#060f1c');
-  grd.addColorStop(1, '#020810');
-  ctx.fillStyle = grd;
+
+  const g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.75);
+  g.addColorStop(0, '#09162a');
+  g.addColorStop(0.6, '#050d18');
+  g.addColorStop(1, '#020810');
+  ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 
   particles.forEach(p => {
-    p.angle += p.drift;
-    p.x += Math.cos(p.angle) * p.speed;
-    p.y += Math.sin(p.angle) * p.speed;
+    p.x += p.vx; p.y += p.vy;
     if (p.x < 0) p.x = W;
     if (p.x > W) p.x = 0;
     if (p.y < 0) p.y = H;
     if (p.y > H) p.y = 0;
-
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
     ctx.fillStyle = p.cyan
       ? `rgba(0,245,255,${p.alpha})`
-      : `rgba(201,169,110,${p.alpha * 0.5})`;
+      : `rgba(201,169,110,${p.alpha * 0.55})`;
     ctx.fill();
   });
 
   requestAnimationFrame(drawBg);
 }
 
-window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
-resizeCanvas();
-initParticles();
-drawBg();
+window.addEventListener('resize', () => { resize(); initP(); });
+resize(); initP(); drawBg();
 </script>
 </body>
 </html>
