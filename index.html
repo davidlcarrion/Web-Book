@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>By The Hearth — The Tome</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --deep-blue: #0a1628;
+    --deep-blue-mid: #0d2040;
+    --deep-green: #0a2318;
+    --deep-green-mid: #0f3024;
+    --cyan: #00f5ff;
+    --cyan-dim: #00c8d4;
+    --cyan-ghost: rgba(0,245,255,0.08);
+    --ui-green: #007f66;
+    --ui-red: #7f1900;
+    --ui-red-light: #c42a00;
+    --leather-dark: #1a0a00;
+    --leather-mid: #2d1200;
+    --leather-accent: #4a1f00;
+    --leather-highlight: #6b3010;
+    --gold: #c9a96e;
+    --gold-dim: #8a6b3a;
+    --page-bg: rgba(8, 20, 35, 0.85);
+    --page-border: rgba(0, 245, 255, 0.15);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #050d18;
+    overflow: hidden;
+    font-family: 'Cormorant Garamond', serif;
+    color: #e8e0d0;
+    cursor: default;
+  }
+
+  #bg-canvas {
+    position: fixed; inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #scene {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+    perspective: 1800px;
+  }
+
+  /* ── COVER ── */
+  #cover-wrap {
+    position: relative;
+    width: 420px; height: 580px;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+    cursor: pointer;
+  }
+
+  #cover-wrap:hover { transform: rotateY(-4deg) rotateX(2deg) scale(1.01); }
+
+  #cover {
+    width: 100%; height: 100%;
+    position: relative;
+    border-radius: 4px 16px 16px 4px;
+    overflow: hidden;
+    box-shadow:
+      -8px 0 0 var(--leather-dark),
+      -16px 0 0 var(--leather-mid),
+      -20px 0 0 var(--leather-dark),
+      0 30px 80px rgba(0,0,0,0.9),
+      0 0 60px rgba(0,245,255,0.05),
+      inset 0 0 80px rgba(0,0,0,0.6);
+    background:
+      radial-gradient(ellipse at 30% 20%, var(--leather-highlight) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, var(--leather-accent) 0%, transparent 50%),
+      linear-gradient(135deg, var(--leather-mid) 0%, var(--leather-dark) 40%, var(--leather-mid) 70%, var(--leather-dark) 100%);
+  }
+
+  #cover::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+  }
+
+  #cover::after {
+    content: '';
+    position: absolute; inset: 12px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 2px 12px 12px 2px;
+    pointer-events: none;
+    box-shadow: inset 0 0 20px rgba(201,169,110,0.1);
+  }
+
+  #cover-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; padding: 40px;
+  }
+
+  #cover-symbol {
+    width: 80px; height: 80px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    box-shadow: 0 0 20px rgba(201,169,110,0.15), inset 0 0 20px rgba(0,0,0,0.5);
+  }
+
+  #cover-symbol::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(201,169,110,0.3);
+    border-radius: 50%;
+  }
+
+  #cover-eye {
+    width: 32px; height: 32px;
+    position: relative;
+  }
+
+  #cover-title {
+    font-family: 'Cinzel', serif;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-align: center;
+    text-shadow: 0 0 30px rgba(201,169,110,0.4);
+    line-height: 1.2;
+  }
+
+  #cover-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 0.35em;
+    color: rgba(201,169,110,0.6);
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  #cover-divider {
+    width: 60%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    margin: 4px 0;
+  }
+
+  #cover-open-hint {
+    position: absolute;
+    bottom: 28px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: rgba(201,169,110,0.4);
+    text-transform: uppercase;
+    animation: hint-pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes hint-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.9; }
+  }
+
+  /* ── BOOK (open state) ── */
+  #book-wrap {
+    display: none;
+    position: relative;
+    width: 900px; height: 580px;
+    transform-style: preserve-3d;
+  }
+
+  #book {
+    width: 100%; height: 100%;
+    display: flex;
+    position: relative;
+    transform-style: preserve-3d;
+  }
+
+  .book-side {
+    width: 50%; height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #left-side {
+    border-radius: 16px 0 0 16px;
+    box-shadow: -4px 0 0 var(--leather-dark), -8px 0 0 var(--leather-mid), -12px 0 0 var(--leather-dark);
+  }
+
+  #right-side {
+    border-radius: 0 16px 16px 0;
+  }
+
+  .page {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.04) 0%, transparent 60%),
+      linear-gradient(180deg, rgba(8,25,45,0.95) 0%, rgba(5,15,28,0.98) 100%);
+    border: 1px solid var(--page-border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 36px;
+    overflow: hidden;
+  }
+
+  .page::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,245,255,0.03) 39px, rgba(0,245,255,0.03) 40px);
+    pointer-events: none;
+  }
+
+  /* spine */
+  #spine {
+    position: absolute;
+    left: 50%; top: 0;
+    transform: translateX(-50%);
+    width: 24px; height: 100%;
+    background: linear-gradient(90deg, var(--leather-dark), var(--leather-mid), var(--leather-dark));
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  }
+
+  #spine::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 10%;
+    transform: translateX(-50%);
+    width: 2px; height: 80%;
+    background: linear-gradient(180deg, transparent, var(--gold-dim), transparent);
+  }
+
+  /* page image */
+  .page-image {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    position: absolute; inset: 0;
+    opacity: 0.7;
+    transition: opacity 0.4s;
+  }
+
+  .page-image-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      rgba(5,12,25,0.5) 0%,
+      rgba(5,12,25,0.1) 40%,
+      rgba(5,12,25,0.1) 60%,
+      rgba(5,12,25,0.6) 100%
+    );
+  }
+
+  /* page content */
+  .page-content {
+    position: relative; z-index: 2;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    padding: 32px 28px;
+  }
+
+  .page-number {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(0,245,255,0.5);
+    margin-bottom: auto;
+  }
+
+  .page-caption {
+    margin-top: auto;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(232,224,208,0.8);
+    line-height: 1.6;
+    border-top: 1px solid rgba(0,245,255,0.1);
+    padding-top: 12px;
+  }
+
+  /* turning page */
+  #turning-page {
+    position: absolute;
+    top: 0; right: 0;
+    width: 50%; height: 100%;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    z-index: 20;
+    pointer-events: none;
+    transition: none;
+  }
+
+  .turn-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 0 16px 16px 0;
+    overflow: hidden;
+  }
+
+  .turn-back {
+    transform: rotateY(180deg);
+    border-radius: 16px 0 0 16px;
+  }
+
+  /* page curl shadow */
+  .page-curl-shadow {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 60px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.5), transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* nav controls */
+  #nav {
+    position: fixed;
+    bottom: 36px; left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 20px;
+    align-items: center;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--ui-green);
+    border: 1px solid var(--ui-green);
+    background: rgba(0,127,102,0.08);
+    padding: 10px 24px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.25s;
+    border-radius: 2px;
+  }
+
+  .nav-btn:hover {
+    background: rgba(0,127,102,0.2);
+    box-shadow: 0 0 20px rgba(0,127,102,0.3);
+    color: var(--cyan-dim);
+    border-color: var(--cyan-dim);
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.2;
+    cursor: default;
+    box-shadow: none;
+  }
+
+  #page-indicator {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: rgba(201,169,110,0.5);
+    min-width: 80px;
+    text-align: center;
+  }
+
+  /* close btn */
+  #close-btn {
+    position: fixed;
+    top: 28px; right: 36px;
+    display: none;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: var(--ui-red-light);
+    border: 1px solid var(--ui-red);
+    background: rgba(127,25,0,0.08);
+    padding: 8px 20px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.25s;
+    border-radius: 2px;
+    z-index: 100;
+  }
+
+  #close-btn:hover {
+    background: rgba(127,25,0,0.2);
+    box-shadow: 0 0 20px rgba(127,25,0,0.4);
+  }
+
+  /* TOC overlay */
+  #toc {
+    position: fixed; inset: 0;
+    background: rgba(5,10,20,0.96);
+    z-index: 200;
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  #toc.visible { display: flex; }
+
+  #toc-title {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .toc-item {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-style: italic;
+    color: rgba(232,224,208,0.7);
+    padding: 12px 40px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(0,245,255,0.05);
+    width: 400px;
+    text-align: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .toc-item::before {
+    content: attr(data-num);
+    position: absolute; left: 0;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ui-green);
+    top: 50%; transform: translateY(-50%);
+  }
+
+  .toc-item:hover {
+    color: var(--cyan-dim);
+    border-color: rgba(0,245,255,0.15);
+    padding-left: 52px;
+  }
+
+  #toc-close {
+    margin-top: 40px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: var(--ui-red-light);
+    border: 1px solid var(--ui-red);
+    background: transparent;
+    padding: 8px 28px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.25s;
+    border-radius: 2px;
+  }
+
+  #toc-close:hover { background: rgba(127,25,0,0.2); }
+
+  /* chapter label */
+  #chapter-label {
+    position: fixed;
+    top: 28px; left: 36px;
+    display: none;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: rgba(201,169,110,0.5);
+    text-transform: uppercase;
+    z-index: 100;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  #chapter-label:hover {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+  }
+
+  /* opening animation */
+  #opening-overlay {
+    position: fixed; inset: 0;
+    z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+    background: #050d18;
+    transition: opacity 1s ease;
+  }
+
+  #opening-overlay.fade { opacity: 0; pointer-events: none; }
+
+  /* drag hint */
+  #drag-hint {
+    position: fixed;
+    bottom: 90px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 12px;
+    font-style: italic;
+    color: rgba(0,245,255,0.4);
+    letter-spacing: 0.15em;
+    display: none;
+    animation: hint-pulse 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* glint */
+  @keyframes glint {
+    0% { transform: translateX(-100%) skewX(-20deg); }
+    100% { transform: translateX(300%) skewX(-20deg); }
+  }
+
+  .glint-line {
+    position: absolute;
+    top: 0; left: 0;
+    width: 40%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(201,169,110,0.06), transparent);
+    animation: glint 6s ease-in-out infinite;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- opening overlay -->
+<div id="opening-overlay">
+  <div id="cover-wrap" onclick="openBook()">
+    <div id="cover">
+      <div class="glint-line"></div>
+      <div id="cover-inner">
+        <div id="cover-symbol">
+          <svg id="cover-eye" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="16" cy="16" rx="13" ry="8" stroke="#c9a96e" stroke-width="0.8" opacity="0.6"/>
+            <circle cx="16" cy="16" r="5" stroke="#c9a96e" stroke-width="0.8" opacity="0.8"/>
+            <circle cx="16" cy="16" r="2" fill="#c9a96e" opacity="0.9"/>
+            <line x1="3" y1="16" x2="7" y2="16" stroke="#c9a96e" stroke-width="0.6" opacity="0.4"/>
+            <line x1="25" y1="16" x2="29" y2="16" stroke="#c9a96e" stroke-width="0.6" opacity="0.4"/>
+          </svg>
+        </div>
+        <div id="cover-title">BY THE<br>HEARTH</div>
+        <div id="cover-divider"></div>
+        <div id="cover-subtitle">A Visual Tome</div>
+        <div id="cover-open-hint">Open</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- book -->
+<div id="scene">
+  <div id="book-wrap">
+    <div id="book">
+      <div id="left-side" class="book-side">
+        <div id="left-page" class="page">
+          <div id="left-img-wrap" style="position:absolute;inset:0;overflow:hidden;">
+            <img id="left-img" class="page-image" src="" alt="" style="display:none;">
+            <div class="page-image-overlay"></div>
+          </div>
+          <div class="page-content">
+            <div id="left-page-num" class="page-number"></div>
+            <div id="left-caption" class="page-caption"></div>
+          </div>
+          <div class="page-curl-shadow" style="right:0;left:auto;background:linear-gradient(270deg,rgba(0,0,0,0.4),transparent);"></div>
+        </div>
+      </div>
+
+      <div id="spine"></div>
+
+      <div id="right-side" class="book-side">
+        <div id="right-page" class="page">
+          <div id="right-img-wrap" style="position:absolute;inset:0;overflow:hidden;">
+            <img id="right-img" class="page-image" src="" alt="" style="display:none;">
+            <div class="page-image-overlay"></div>
+          </div>
+          <div class="page-content">
+            <div id="right-page-num" class="page-number"></div>
+            <div id="right-caption" class="page-caption"></div>
+          </div>
+          <div class="page-curl-shadow"></div>
+        </div>
+
+        <!-- turning page overlay -->
+        <div id="turning-page">
+          <div class="turn-face">
+            <div id="turn-front-img-wrap" style="position:absolute;inset:0;overflow:hidden;border-radius:0 16px 16px 0;">
+              <img id="turn-front-img" class="page-image" src="" alt="" style="display:none;">
+              <div class="page-image-overlay"></div>
+            </div>
+            <div class="page-content" style="position:relative;z-index:2;">
+              <div id="turn-front-num" class="page-number"></div>
+            </div>
+          </div>
+          <div class="turn-face turn-back"
+               style="background:radial-gradient(ellipse at 50% 0%,rgba(0,245,255,0.04) 0%,transparent 60%),linear-gradient(180deg,rgba(8,25,45,0.95),rgba(5,15,28,0.98));border:1px solid rgba(0,245,255,0.15);">
+            <div id="turn-back-img-wrap" style="position:absolute;inset:0;overflow:hidden;border-radius:16px 0 0 16px;">
+              <img id="turn-back-img" class="page-image" src="" alt="" style="display:none;">
+              <div class="page-image-overlay"></div>
+            </div>
+            <div class="page-content" style="position:relative;z-index:2;">
+              <div id="turn-back-num" class="page-number"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="chapter-label" onclick="showTOC()">Contents</div>
+<div id="drag-hint">drag the page — or use the arrows below</div>
+
+<div id="nav">
+  <button class="nav-btn" id="prev-btn" onclick="prevPage()">&#8592; Prev</button>
+  <div id="page-indicator"></div>
+  <button class="nav-btn" id="next-btn" onclick="nextPage()">Next &#8594;</button>
+</div>
+
+<button id="close-btn" onclick="closeBook()">&#10005; Close</button>
+
+<div id="toc">
+  <div id="toc-title">Table of Contents</div>
+  <div id="toc-items"></div>
+  <button id="toc-close" onclick="hideTOC()">Close</button>
+</div>
+
+<script>
+const CHAPTERS = [
+  {
+    title: "Portfolio",
+    pages: [
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1776482588301-UDUUEXL1KGBSHEIVYQZ5/BTH06966.jpg", caption: "Light finds its way." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1773796720236-EIX0PIAPZM2IBM1SYGME/grief4.jpg", caption: "Honor remains when all else is lost." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1772462342517-EL7BIKMZH5L3U8Q7YDWR/import3.1+%28162%29-4.jpg", caption: "The soul is in your keeping alone." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1771174930532-22WB6XQULOFF32NHFQCW/import2+%28343%29.jpg", caption: "Work without praise. Without audience." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770673456685-ZDFV2X2RMOB0AOCZ8ZVI/importio2.9+%28381%29.jpg", caption: "Living photographs — moments held." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770009126806-M127902Y57138GKOF93P/import.1+%2849%29.jpg", caption: "Irreplaceable." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1769222511535-9PC0CX1XQ57G9H3ZKXEO/import1+%2858%29.jpg", caption: "There is a crack in everything — that's how the light gets in." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1768753280619-GQZNU34Q991R4O8C83H9/tokyodrift+%2821%29.jpg", caption: "And on they went." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1762740451204-SULUDBK2FMVDACBSMKQM/Alivia+Massey+COG4.jpg", caption: "Test of truth." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1759726003101-8SZRIYGOLJBWWXHQV8LK/BTH03523.jpg", caption: "Culture." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1757907326235-QMG8B8YC2IAWKJS1V8Q6/BTH09500.jpg", caption: "You'll do just fine." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1756694967066-O6Q6C4KC2RZN87YC4WX0/BTH08543.jpg", caption: "Finding belonging." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1753408875853-D6PMF07IB1RYC9WRDSH8/DSC00062.jpg", caption: "I am become nothing. Creator of worlds." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1751689504972-WV0SF212HPH66NMG6GT3/DSC06722.jpg", caption: "Are you proud?" },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1750401570501-SN6Q6JTQO4ISRZ2ZL79A/BTH04455.jpg", caption: "Letting go." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1745868109985-1JAIS40LTGDXT2MNL17H/BTH03436.jpg", caption: "The pain it took to become so gentle." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1741631000986-1NCOYCP2BCYD5SBY13IC/Seattle+Skyscraper.jpg", caption: "Silence has never betrayed me." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1738963144409-6TIJBETVZ4UWTAAV0RHO/BTH06847.jpg", caption: "Bring back bravery before benevolence dies." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1733721766570-KCHYR1SUP5J1JV2HDEMH/DSC05966.jpg", caption: "Miles." },
+      { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1728944423933-SR2MXO292OXLUA7B7KH3/DSC04013.jpg", caption: "The divide." },
+    ]
+  }
+];
+
+let allPages = [];
+let currentSpread = 0;
+let isAnimating = false;
+let isDragging = false;
+let dragStartX = 0;
+
+function buildPages() {
+  allPages = [];
+  CHAPTERS.forEach(ch => {
+    ch.pages.forEach((p, i) => {
+      allPages.push({ ...p, chapter: ch.title, num: i + 1, total: ch.pages.length });
+    });
+  });
+}
+
+function totalSpreads() { return Math.ceil(allPages.length / 2); }
+
+function getSpreadPages(spread) {
+  const left = allPages[spread * 2] || null;
+  const right = allPages[spread * 2 + 1] || null;
+  return { left, right };
+}
+
+function setPageContent(side, pageData, spreadIndex) {
+  const img = document.getElementById(side + '-img');
+  const num = document.getElementById(side + '-page-num');
+  const caption = document.getElementById(side + '-caption');
+  const wrap = document.getElementById(side + '-img-wrap');
+
+  if (!pageData) {
+    if (img) { img.src = ''; img.style.display = 'none'; }
+    if (num) num.textContent = '';
+    if (caption) caption.textContent = '';
+    return;
+  }
+
+  if (img) {
+    img.src = pageData.img;
+    img.style.display = 'block';
+    img.style.opacity = '0';
+    img.onload = () => { img.style.transition = 'opacity 0.6s'; img.style.opacity = '0.7'; };
+  }
+  if (num) num.textContent = 'pg. ' + String(spreadIndex * 2 + (side === 'right' ? 2 : 1)).padStart(2, '0');
+  if (caption) caption.textContent = pageData.caption || '';
+}
+
+function renderSpread(spread) {
+  const { left, right } = getSpreadPages(spread);
+  setPageContent('left', left, spread);
+  setPageContent('right', right, spread);
+
+  const indicator = document.getElementById('page-indicator');
+  const total = allPages.length;
+  const from = spread * 2 + 1;
+  const to = Math.min(spread * 2 + 2, total);
+  indicator.textContent = from + (to > from ? '–' + to : '') + ' / ' + total;
+
+  document.getElementById('prev-btn').disabled = spread === 0;
+  document.getElementById('next-btn').disabled = spread >= totalSpreads() - 1;
+}
+
+function animatePageTurn(direction, callback) {
+  if (isAnimating) return;
+  isAnimating = true;
+
+  const tp = document.getElementById('turning-page');
+  const nextSpread = direction === 'next' ? currentSpread + 1 : currentSpread - 1;
+
+  if (direction === 'next') {
+    const { right } = getSpreadPages(currentSpread);
+    const { left: nextLeft, right: nextRight } = getSpreadPages(nextSpread);
+
+    const tfi = document.getElementById('turn-front-img');
+    const tbi = document.getElementById('turn-back-img');
+    const tfn = document.getElementById('turn-front-num');
+    const tbn = document.getElementById('turn-back-num');
+
+    if (right && tfi) {
+      tfi.src = right.img; tfi.style.display = 'block'; tfi.style.opacity = '0.7';
+    }
+    if (nextLeft && tbi) {
+      tbi.src = nextLeft.img; tbi.style.display = 'block'; tbi.style.opacity = '0.7';
+    }
+    if (tfn) tfn.textContent = 'pg. ' + String(currentSpread * 2 + 2).padStart(2, '0');
+    if (tbn) tbn.textContent = 'pg. ' + String(nextSpread * 2 + 1).padStart(2, '0');
+
+    tp.style.transition = 'none';
+    tp.style.transform = 'rotateY(0deg)';
+    tp.style.pointerEvents = 'none';
+
+    requestAnimationFrame(() => {
+      tp.style.transition = 'transform 0.7s cubic-bezier(0.645,0.045,0.355,1.0)';
+      tp.style.transform = 'rotateY(-180deg)';
+    });
+
+    setTimeout(() => {
+      currentSpread = nextSpread;
+      renderSpread(currentSpread);
+      tp.style.transition = 'none';
+      tp.style.transform = 'rotateY(0deg)';
+      const tfi2 = document.getElementById('turn-front-img');
+      const tbi2 = document.getElementById('turn-back-img');
+      if (tfi2) { tfi2.src = ''; tfi2.style.display = 'none'; }
+      if (tbi2) { tbi2.src = ''; tbi2.style.display = 'none'; }
+      isAnimating = false;
+      if (callback) callback();
+    }, 720);
+
+  } else {
+    const { left } = getSpreadPages(currentSpread);
+    const { left: prevLeft, right: prevRight } = getSpreadPages(nextSpread);
+
+    const tfi = document.getElementById('turn-front-img');
+    const tbi = document.getElementById('turn-back-img');
+
+    if (prevRight && tbi) {
+      tbi.src = prevRight.img; tbi.style.display = 'block'; tbi.style.opacity = '0.7';
+    }
+    if (left && tfi) {
+      tfi.src = left.img; tfi.style.display = 'block'; tfi.style.opacity = '0.7';
+    }
+
+    tp.style.transition = 'none';
+    tp.style.transform = 'rotateY(-180deg)';
+    tp.style.pointerEvents = 'none';
+
+    requestAnimationFrame(() => {
+      tp.style.transition = 'transform 0.7s cubic-bezier(0.645,0.045,0.355,1.0)';
+      tp.style.transform = 'rotateY(0deg)';
+    });
+
+    setTimeout(() => {
+      currentSpread = nextSpread;
+      renderSpread(currentSpread);
+      tp.style.transition = 'none';
+      tp.style.transform = 'rotateY(0deg)';
+      const tfi2 = document.getElementById('turn-front-img');
+      const tbi2 = document.getElementById('turn-back-img');
+      if (tfi2) { tfi2.src = ''; tfi2.style.display = 'none'; }
+      if (tbi2) { tbi2.src = ''; tbi2.style.display = 'none'; }
+      isAnimating = false;
+      if (callback) callback();
+    }, 720);
+  }
+}
+
+function nextPage() {
+  if (currentSpread < totalSpreads() - 1) animatePageTurn('next');
+}
+
+function prevPage() {
+  if (currentSpread > 0) animatePageTurn('prev');
+}
+
+function openBook() {
+  const overlay = document.getElementById('opening-overlay');
+  overlay.classList.add('fade');
+
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    document.getElementById('book-wrap').style.display = 'block';
+    document.getElementById('nav').style.display = 'flex';
+    document.getElementById('close-btn').style.display = 'block';
+    document.getElementById('chapter-label').style.display = 'block';
+    document.getElementById('drag-hint').style.display = 'block';
+
+    buildPages();
+    renderSpread(0);
+    setupDrag();
+    setupKeyboard();
+  }, 900);
+}
+
+function closeBook() {
+  document.getElementById('book-wrap').style.display = 'none';
+  document.getElementById('nav').style.display = 'none';
+  document.getElementById('close-btn').style.display = 'none';
+  document.getElementById('chapter-label').style.display = 'none';
+  document.getElementById('drag-hint').style.display = 'none';
+
+  const overlay = document.getElementById('opening-overlay');
+  overlay.style.display = 'flex';
+  overlay.style.opacity = '0';
+  overlay.classList.remove('fade');
+  requestAnimationFrame(() => {
+    overlay.style.transition = 'opacity 0.6s';
+    overlay.style.opacity = '1';
+  });
+  currentSpread = 0;
+}
+
+function showTOC() {
+  const toc = document.getElementById('toc');
+  const items = document.getElementById('toc-items');
+  items.innerHTML = '';
+  CHAPTERS.forEach((ch, ci) => {
+    const div = document.createElement('div');
+    div.className = 'toc-item';
+    div.setAttribute('data-num', String(ci + 1).padStart(2, '0'));
+    div.textContent = ch.title;
+    div.onclick = () => {
+      currentSpread = 0;
+      renderSpread(0);
+      hideTOC();
+    };
+    items.appendChild(div);
+  });
+  toc.classList.add('visible');
+}
+
+function hideTOC() {
+  document.getElementById('toc').classList.remove('visible');
+}
+
+function setupDrag() {
+  const rs = document.getElementById('right-side');
+  const ls = document.getElementById('left-side');
+
+  function onDragStart(e) {
+    if (isAnimating) return;
+    isDragging = true;
+    dragStartX = e.touches ? e.touches[0].clientX : e.clientX;
+  }
+
+  function onDragEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const delta = endX - dragStartX;
+    if (Math.abs(delta) > 60) {
+      if (delta < 0) nextPage();
+      else prevPage();
+    }
+  }
+
+  [rs, ls].forEach(el => {
+    el.addEventListener('mousedown', onDragStart);
+    el.addEventListener('touchstart', onDragStart, { passive: true });
+  });
+  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('touchend', onDragEnd);
+}
+
+function setupKeyboard() {
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') nextPage();
+    if (e.key === 'ArrowLeft') prevPage();
+    if (e.key === 'Escape') hideTOC();
+  });
+}
+
+// ── PARTICLE BG ──
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resizeCanvas() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function makeParticle() {
+  return {
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.2 + 0.2,
+    speed: Math.random() * 0.15 + 0.05,
+    angle: Math.random() * Math.PI * 2,
+    drift: (Math.random() - 0.5) * 0.005,
+    alpha: Math.random() * 0.4 + 0.05,
+    cyan: Math.random() > 0.85
+  };
+}
+
+function initParticles() {
+  particles = Array.from({ length: 120 }, makeParticle);
+}
+
+function drawBg() {
+  ctx.clearRect(0, 0, W, H);
+  const grd = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+  grd.addColorStop(0, '#0a1628');
+  grd.addColorStop(0.5, '#060f1c');
+  grd.addColorStop(1, '#020810');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  particles.forEach(p => {
+    p.angle += p.drift;
+    p.x += Math.cos(p.angle) * p.speed;
+    p.y += Math.sin(p.angle) * p.speed;
+    if (p.x < 0) p.x = W;
+    if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H;
+    if (p.y > H) p.y = 0;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.cyan
+      ? `rgba(0,245,255,${p.alpha})`
+      : `rgba(201,169,110,${p.alpha * 0.5})`;
+    ctx.fill();
+  });
+
+  requestAnimationFrame(drawBg);
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+resizeCanvas();
+initParticles();
+drawBg();
+</script>
+</body>
+</html>
