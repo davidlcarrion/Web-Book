@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>By The Hearth — The Tome</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --deep-blue: #050d18;
+  --cyan: #00f5ff;
+  --cyan-dim: #00c8d4;
+  --ui-green: #007f66;
+  --ui-red: #7f1900;
+  --ui-red-light: #c42a00;
+  --leather-dark: #1a0800;
+  --leather-mid: #2d1200;
+  --leather-accent: #4a1f00;
+  --leather-hi: #6b3010;
+  --gold: #c9a96e;
+  --gold-dim: #8a6b3a;
+  --page-dark: #060f1e;
+  --page-mid: #08172e;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--deep-blue);
+  overflow: hidden;
+  font-family: 'Cormorant Garamond', serif;
+  color: #e8e0d0;
+  user-select: none;
+}
+
+#bg-canvas {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── COVER SCREEN ── */
+#cover-screen {
+  position: fixed; inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 1.2s ease;
+}
+
+#cover-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#cover-book {
+  width: 380px; height: 540px;
+  position: relative;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+  filter: drop-shadow(0 40px 80px rgba(0,0,0,0.95)) drop-shadow(0 0 40px rgba(0,245,255,0.04));
+}
+
+#cover-book:hover {
+  transform: rotateY(-6deg) rotateX(3deg) scale(1.02);
+}
+
+#cover-face {
+  width: 100%; height: 100%;
+  border-radius: 3px 14px 14px 3px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 25% 15%, var(--leather-hi) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 85%, var(--leather-accent) 0%, transparent 45%),
+    linear-gradient(150deg, var(--leather-mid) 0%, var(--leather-dark) 35%, var(--leather-mid) 65%, var(--leather-dark) 100%);
+}
+
+/* leather grain */
+#cover-face::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 3px),
+    repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.01) 8px, rgba(255,255,255,0.01) 9px);
+  pointer-events: none;
+}
+
+/* inner border */
+#cover-face::after {
+  content: '';
+  position: absolute; inset: 14px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 1px 10px 10px 1px;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,169,110,0.05);
+  pointer-events: none;
+}
+
+/* spine shadow on left */
+#cover-spine {
+  position: absolute;
+  left: -18px; top: 0;
+  width: 18px; height: 100%;
+  background: linear-gradient(90deg, #0a0400, #1a0800, #0f0500);
+  border-radius: 2px 0 0 2px;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.8);
+}
+
+#cover-spine::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 8%; transform: translateX(-50%);
+  width: 1px; height: 84%;
+  background: linear-gradient(180deg, transparent, rgba(201,169,110,0.3), transparent);
+}
+
+/* page stack illusion */
+#cover-pages {
+  position: absolute;
+  right: -6px; top: 3px; bottom: 3px;
+  width: 8px;
+  background: repeating-linear-gradient(
+    180deg,
+    #e8e0d0 0px, #e8e0d0 1px,
+    #c8bfa8 1px, #c8bfa8 2px
+  );
+  border-radius: 0 2px 2px 0;
+  opacity: 0.6;
+}
+
+#cover-content {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 18px; padding: 48px 40px;
+}
+
+.cover-ornament {
+  width: 72px; height: 72px;
+  border: 1px solid rgba(201,169,110,0.5);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  box-shadow: 0 0 24px rgba(201,169,110,0.12), inset 0 0 24px rgba(0,0,0,0.6);
+}
+
+.cover-ornament::before {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 50%;
+}
+
+#cover-title {
+  font-family: 'Cinzel', serif;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  text-align: center;
+  text-shadow: 0 0 40px rgba(201,169,110,0.35);
+  line-height: 1.25;
+}
+
+.cover-rule {
+  width: 55%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+#cover-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px;
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: 0.38em;
+  color: rgba(201,169,110,0.5);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+#open-hint {
+  position: absolute; bottom: 24px;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.45em;
+  color: rgba(201,169,110,0.35);
+  text-transform: uppercase;
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,100% { opacity:0.35; transform: translateY(0); }
+  50% { opacity:0.8; transform: translateY(-2px); }
+}
+
+.glint {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(201,169,110,0.05) 50%, transparent 60%);
+  animation: glint-sweep 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes glint-sweep {
+  0%,100% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
+}
+
+/* ── BOOK STAGE ── */
+#stage {
+  position: fixed; inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
+#stage.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#flipbook {
+  /* sized by JS */
+}
+
+/* turn.js page styles */
+.page {
+  background: var(--page-dark);
+  overflow: hidden;
+  position: relative;
+}
+
+.page-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.page-img.loaded { opacity: 0.75; }
+
+.page-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(5,12,25,0.55) 0%,
+    rgba(5,12,25,0.08) 35%,
+    rgba(5,12,25,0.08) 65%,
+    rgba(5,12,25,0.65) 100%
+  );
+  pointer-events: none;
+}
+
+/* scanline texture */
+.page-texture {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 38px,
+    rgba(0,245,255,0.025) 38px,
+    rgba(0,245,255,0.025) 39px
+  );
+  pointer-events: none;
+}
+
+/* cyan glow top */
+.page-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,245,255,0.3), transparent);
+  pointer-events: none;
+}
+
+.page-num {
+  position: absolute;
+  bottom: 22px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: rgba(0,245,255,0.4);
+}
+
+.page-num.left { left: 24px; }
+.page-num.right { right: 24px; }
+
+.page-caption {
+  position: absolute;
+  bottom: 38px; left: 24px; right: 24px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(232,224,208,0.7);
+  line-height: 1.55;
+  border-top: 1px solid rgba(0,245,255,0.1);
+  padding-top: 10px;
+}
+
+/* hard page (cover/back) */
+.hard {
+  background: linear-gradient(150deg, var(--leather-mid), var(--leather-dark));
+}
+
+/* spine center line */
+#center-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, rgba(201,169,110,0.15), transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* close */
+#close-btn {
+  position: fixed;
+  top: 24px; right: 32px;
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.4em;
+  color: var(--ui-red-light);
+  border: 1px solid var(--ui-red);
+  background: rgba(127,25,0,0.06);
+  padding: 9px 22px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.25s;
+  border-radius: 2px;
+  display: none;
+}
+
+#close-btn:hover {
+  background: rgba(127,25,0,0.18);
+  box-shadow: 0 0 16px rgba(127,25,0,0.3);
+}
+
+/* drag hint */
+#drag-hint {
+  position: fixed;
+  bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  color: rgba(0,245,255,0.3);
+  display: none;
+  pointer-events: none;
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
+/* chapter marker */
+#chapter-tag {
+  position: fixed;
+  top: 24px; left: 32px;
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.4em;
+  color: rgba(201,169,110,0.4);
+  text-transform: uppercase;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- COVER -->
+<div id="cover-screen">
+  <div id="cover-book" onclick="openTome()">
+    <div id="cover-spine"></div>
+    <div id="cover-pages"></div>
+    <div id="cover-face">
+      <div class="glint"></div>
+      <div id="cover-content">
+        <div class="cover-ornament">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <ellipse cx="17" cy="17" rx="13" ry="8" stroke="#c9a96e" stroke-width="0.7" opacity="0.65"/>
+            <circle cx="17" cy="17" r="5" stroke="#c9a96e" stroke-width="0.7" opacity="0.8"/>
+            <circle cx="17" cy="17" r="2.2" fill="#c9a96e" opacity="0.9"/>
+            <line x1="4" y1="17" x2="8" y2="17" stroke="#c9a96e" stroke-width="0.5" opacity="0.4"/>
+            <line x1="26" y1="17" x2="30" y2="17" stroke="#c9a96e" stroke-width="0.5" opacity="0.4"/>
+            <line x1="17" y1="4" x2="17" y2="8" stroke="#c9a96e" stroke-width="0.5" opacity="0.25"/>
+            <line x1="17" y1="26" x2="17" y2="30" stroke="#c9a96e" stroke-width="0.5" opacity="0.25"/>
+          </svg>
+        </div>
+        <div id="cover-title">BY THE<br>HEARTH</div>
+        <div class="cover-rule"></div>
+        <div id="cover-sub">A Visual Tome</div>
+        <div id="open-hint">Open</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOOK STAGE -->
+<div id="stage">
+  <div id="center-line"></div>
+  <div id="flipbook"></div>
+</div>
+
+<button id="close-btn" onclick="closeTome()">&#10005; Close</button>
+<div id="drag-hint">drag the edge of the page to turn</div>
+<div id="chapter-tag">By The Hearth</div>
+
+<script>
+const PAGES = [
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1776482588301-UDUUEXL1KGBSHEIVYQZ5/BTH06966.jpg", caption: "Light finds its way." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1773796720236-EIX0PIAPZM2IBM1SYGME/grief4.jpg", caption: "Honor remains when all else is lost." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1772462342517-EL7BIKMZH5L3U8Q7YDWR/import3.1+%28162%29-4.jpg", caption: "The soul is in your keeping alone." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1771174930532-22WB6XQULOFF32NHFQCW/import2+%28343%29.jpg", caption: "Work without praise. Without audience." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770673456685-ZDFV2X2RMOB0AOCZ8ZVI/importio2.9+%28381%29.jpg", caption: "Living photographs." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1770009126806-M127902Y57138GKOF93P/import.1+%2849%29.jpg", caption: "Irreplaceable." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1769222511535-9PC0CX1XQ57G9H3ZKXEO/import1+%2858%29.jpg", caption: "There is a crack in everything — that's how the light gets in." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1768753280619-GQZNU34Q991R4O8C83H9/tokyodrift+%2821%29.jpg", caption: "And on they went." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1762740451204-SULUDBK2FMVDACBSMKQM/Alivia+Massey+COG4.jpg", caption: "Test of truth." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1759726003101-8SZRIYGOLJBWWXHQV8LK/BTH03523.jpg", caption: "Culture." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1757907326235-QMG8B8YC2IAWKJS1V8Q6/BTH09500.jpg", caption: "You'll do just fine." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1756694967066-O6Q6C4KC2RZN87YC4WX0/BTH08543.jpg", caption: "Finding belonging." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1753408875853-D6PMF07IB1RYC9WRDSH8/DSC00062.jpg", caption: "I am become nothing. Creator of worlds." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1751689504972-WV0SF212HPH66NMG6GT3/DSC06722.jpg", caption: "Are you proud?" },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1750401570501-SN6Q6JTQO4ISRZ2ZL79A/BTH04455.jpg", caption: "Letting go." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1745868109985-1JAIS40LTGDXT2MNL17H/BTH03436.jpg", caption: "The pain it took to become so gentle." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1741631000986-1NCOYCP2BCYD5SBY13IC/Seattle+Skyscraper.jpg", caption: "Silence has never betrayed me." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1738963144409-6TIJBETVZ4UWTAAV0RHO/BTH06847.jpg", caption: "Bring back bravery before benevolence dies." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1733721766570-KCHYR1SUP5J1JV2HDEMH/DSC05966.jpg", caption: "Miles." },
+  { img: "https://images.squarespace-cdn.com/content/v1/6346e2ce6d983554e90d730c/1728944423933-SR2MXO292OXLUA7B7KH3/DSC04013.jpg", caption: "The divide." },
+];
+
+function buildPage(data, pageIndex, side) {
+  const div = document.createElement('div');
+  div.className = 'page';
+
+  const glow = document.createElement('div');
+  glow.className = 'page-glow';
+  div.appendChild(glow);
+
+  const tex = document.createElement('div');
+  tex.className = 'page-texture';
+  div.appendChild(tex);
+
+  if (data && data.img) {
+    const img = document.createElement('img');
+    img.className = 'page-img';
+    img.alt = data.caption || '';
+    div.appendChild(img);
+
+    const ov = document.createElement('div');
+    ov.className = 'page-overlay';
+    div.appendChild(ov);
+
+    // lazy load
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          img.src = data.img;
+          img.onload = () => img.classList.add('loaded');
+          observer.disconnect();
+        }
+      });
+    }, { rootMargin: '200px' });
+    observer.observe(div);
+
+    if (data.caption) {
+      const cap = document.createElement('div');
+      cap.className = 'page-caption';
+      cap.textContent = data.caption;
+      div.appendChild(cap);
+    }
+  }
+
+  const num = document.createElement('div');
+  num.className = 'page-num ' + side;
+  num.textContent = String(pageIndex).padStart(2, '0');
+  div.appendChild(num);
+
+  return div;
+}
+
+function buildHardCover(isBack) {
+  const div = document.createElement('div');
+  div.className = 'page hard';
+  div.style.background = 'linear-gradient(150deg, #2d1200, #1a0800, #2d1200)';
+
+  if (!isBack) {
+    div.innerHTML = `
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;">
+        <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:900;letter-spacing:0.2em;color:#c9a96e;text-align:center;text-shadow:0 0 30px rgba(201,169,110,0.3);">BY THE<br>HEARTH</div>
+        <div style="width:50%;height:1px;background:linear-gradient(90deg,transparent,#8a6b3a,transparent);"></div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:10px;font-style:italic;letter-spacing:0.35em;color:rgba(201,169,110,0.45);text-transform:uppercase;">A Visual Tome</div>
+      </div>
+      <div style="position:absolute;inset:14px;border:1px solid rgba(138,107,58,0.4);border-radius:1px;"></div>
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);pointer-events:none;"></div>
+    `;
+  } else {
+    div.innerHTML = `
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+        <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.5em;color:rgba(201,169,110,0.2);text-transform:uppercase;">Finis</div>
+      </div>
+      <div style="position:absolute;inset:14px;border:1px solid rgba(138,107,58,0.25);border-radius:1px;"></div>
+    `;
+  }
+
+  return div;
+}
+
+let tomeOpen = false;
+
+function openTome() {
+  if (tomeOpen) return;
+  tomeOpen = true;
+
+  document.getElementById('cover-screen').classList.add('hidden');
+
+  setTimeout(() => {
+    document.getElementById('stage').classList.add('visible');
+    document.getElementById('close-btn').style.display = 'block';
+    document.getElementById('drag-hint').style.display = 'block';
+    document.getElementById('chapter-tag').style.display = 'block';
+    initFlipbook();
+  }, 800);
+}
+
+function closeTome() {
+  tomeOpen = false;
+  document.getElementById('stage').classList.remove('visible');
+  document.getElementById('close-btn').style.display = 'none';
+  document.getElementById('drag-hint').style.display = 'none';
+  document.getElementById('chapter-tag').style.display = 'none';
+
+  // destroy turn.js
+  try { $('#flipbook').turn('destroy'); } catch(e) {}
+  $('#flipbook').empty();
+
+  const cs = document.getElementById('cover-screen');
+  cs.classList.remove('hidden');
+  cs.style.opacity = '0';
+  requestAnimationFrame(() => {
+    cs.style.transition = 'opacity 0.8s ease';
+    cs.style.opacity = '1';
+  });
+}
+
+function initFlipbook() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const pageH = Math.min(vh * 0.82, 620);
+  const pageW = Math.min(vw * 0.4, 480);
+  const bookW = pageW * 2;
+  const bookH = pageH;
+
+  const fb = document.getElementById('flipbook');
+  fb.style.width = bookW + 'px';
+  fb.style.height = bookH + 'px';
+  fb.style.position = 'relative';
+
+  // turn.js needs pages as children BEFORE init
+  // page count: hard-front + content pages (even number) + hard-back
+  const contentPages = PAGES.length % 2 === 0 ? PAGES.length : PAGES.length + 1;
+  const totalPages = 2 + contentPages; // hard covers included
+
+  // front hard cover (pages 1+2 are the spread when closed)
+  const frontCover = buildHardCover(false);
+  frontCover.className += ' hard';
+  $(fb).append(frontCover);
+
+  // blank left page (first spread right = page 2, but we need a left first)
+  const blankFirst = document.createElement('div');
+  blankFirst.className = 'page';
+  blankFirst.style.background = '#06101e';
+  blankFirst.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="font-family:\'Cinzel\',serif;font-size:9px;letter-spacing:0.5em;color:rgba(0,245,255,0.15);text-transform:uppercase;">Begin</div></div>';
+  $(fb).append(blankFirst);
+
+  // content pages
+  PAGES.forEach((data, i) => {
+    const side = i % 2 === 0 ? 'left' : 'right';
+    const pg = buildPage(data, i + 1, side);
+    $(fb).append(pg);
+  });
+
+  // padding page if odd
+  if (PAGES.length % 2 !== 0) {
+    const blank = document.createElement('div');
+    blank.className = 'page';
+    blank.style.background = '#06101e';
+    $(fb).append(blank);
+  }
+
+  // back hard cover
+  const backCover = buildHardCover(true);
+  $(fb).append(backCover);
+
+  // init turn.js
+  $(fb).turn({
+    width: bookW,
+    height: bookH,
+    autoCenter: true,
+    display: 'double',
+    acceleration: true,
+    gradients: true,
+    elevation: 50,
+    when: {
+      turned: function(e, page) {
+        // hide hint after first turn
+        document.getElementById('drag-hint').style.opacity = '0';
+      }
+    }
+  });
+
+  // touch support
+  $(fb).bind('touchstart', function(e) {
+    const touch = e.originalEvent.touches[0];
+    $(this).data('touchstart', touch.pageX);
+  });
+
+  $(fb).bind('touchend', function(e) {
+    const startX = $(this).data('touchstart');
+    const touch = e.originalEvent.changedTouches[0];
+    const delta = touch.pageX - startX;
+    if (Math.abs(delta) > 40) {
+      if (delta < 0) $(this).turn('next');
+      else $(this).turn('previous');
+    }
+  });
+
+  // keyboard
+  $(document).off('keydown.turn').on('keydown.turn', function(e) {
+    if (e.key === 'ArrowRight') $(fb).turn('next');
+    if (e.key === 'ArrowLeft') $(fb).turn('previous');
+  });
+}
+
+// ── PARTICLE BG ──
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function makeP() {
+  return {
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.1 + 0.15,
+    vx: (Math.random() - 0.5) * 0.08,
+    vy: (Math.random() - 0.5) * 0.08,
+    alpha: Math.random() * 0.35 + 0.04,
+    cyan: Math.random() > 0.82
+  };
+}
+
+function initP() { particles = Array.from({ length: 100 }, makeP); }
+
+function drawBg() {
+  ctx.clearRect(0, 0, W, H);
+
+  const g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.75);
+  g.addColorStop(0, '#09162a');
+  g.addColorStop(0.6, '#050d18');
+  g.addColorStop(1, '#020810');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = W;
+    if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H;
+    if (p.y > H) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.cyan
+      ? `rgba(0,245,255,${p.alpha})`
+      : `rgba(201,169,110,${p.alpha * 0.55})`;
+    ctx.fill();
+  });
+
+  requestAnimationFrame(drawBg);
+}
+
+window.addEventListener('resize', () => { resize(); initP(); });
+resize(); initP(); drawBg();
+</script>
+</body>
+</html>
